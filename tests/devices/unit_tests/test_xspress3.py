@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import ANY, Mock
 
 import bluesky.plan_stubs as bps
@@ -38,7 +39,9 @@ async def mock_xspress3mini(prefix: str = "BLXX-EA-DET-007:") -> Xspress3:
     return mock_xspress3mini
 
 
-def test_stage_in_RE_success_in_busy_state(mock_xspress3mini: Xspress3, RE: RunEngine):
+async def test_stage_in_RE_success_in_busy_state(
+    mock_xspress3mini: Xspress3, RE: RunEngine
+):
     # set xspress to busy
     set_mock_value(mock_xspress3mini.acquire_rbv, AcquireRBVState.DONE)
     set_mock_value(mock_xspress3mini.detector_state, DetectorState.ACQUIRE)
@@ -55,6 +58,7 @@ def test_stage_in_RE_success_in_busy_state(mock_xspress3mini: Xspress3, RE: RunE
     get_mock_put(mock_xspress3mini.trigger_mode).assert_called_once_with(
         TriggerMode.BURST, wait=ANY, timeout=ANY
     )
+    await asyncio.sleep(0.2)
     assert 2 == get_mock_put(mock_xspress3mini.acquire).call_count
 
 
@@ -67,6 +71,7 @@ async def test_stage_fail_on_detector_not_busy_state(
         await mock_xspress3mini.stage()
     with pytest.raises(Exception):
         RE(bps.stage(mock_xspress3mini, wait=True))
+    await asyncio.sleep(0.2)
     assert 2 == get_mock_put(mock_xspress3mini.trigger_mode).call_count
     # unstage is call even when staging failed
     assert 1 == get_mock_put(mock_xspress3mini.acquire).call_count
@@ -82,6 +87,6 @@ async def test_stage_fail_to_acquire_timeout(
         await mock_xspress3mini.stage()
     with pytest.raises(Exception):
         RE(bps.stage(mock_xspress3mini, wait=True))
-
+    await asyncio.sleep(0.2)
     assert 2 == get_mock_put(mock_xspress3mini.trigger_mode).call_count
     assert 3 == get_mock_put(mock_xspress3mini.acquire).call_count
